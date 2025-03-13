@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type Client struct {
@@ -41,6 +42,8 @@ func (p *Client) IsTest() bool {
 // Endpoint sets up the routes for the application.
 func Endpoint(e *echo.Echo, isTest bool) {
 	p := NewClient(isTest)
+
+	e.Use(setmiddleware(isTest))
 
 	// version 1
 	v1 := e.Group("/api/v1")
@@ -80,4 +83,34 @@ func privateHealth(c echo.Context) error {
 	fmt.Println(claims)
 
 	return responseHandler(c, http.StatusOK, echo.Map{"message": "OK"}, nil, "success, private health")
+}
+
+func setmiddleware(isTest bool) echo.MiddlewareFunc {
+	var setCors = middleware.CORS()
+	if !isTest { // 本番環境は展開先のGUIのURLを設定
+		origins := []string{
+			os.Getenv("FRONTEND_URL"),
+		}
+
+		setCors = middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: origins,
+			AllowHeaders: []string{
+				echo.HeaderOrigin,
+				echo.HeaderContentType,
+				echo.HeaderAccept,
+				echo.HeaderAuthorization,
+				echo.HeaderXRequestedWith,
+			},
+			AllowMethods: []string{
+				echo.GET,
+				echo.POST,
+				echo.PUT,
+				echo.DELETE,
+				echo.OPTIONS,
+			},
+			MaxAge: 86400,
+		})
+	}
+
+	return setCors
 }
