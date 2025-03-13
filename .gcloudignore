@@ -1,0 +1,4 @@
+.env
+*.json
+*.yml
+*_test.go
